@@ -11,6 +11,9 @@
 
 #include "GlobalTracking/MatchGlobalFwd.h"
 
+#include "TTree.h"
+#include "TFile.h"
+
 using namespace o2::globaltracking;
 
 //_________________________________________________________
@@ -338,6 +341,44 @@ void MatchGlobalFwd::doMatching()
 template <bool saveAllMode>
 void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 {
+  // preparing for exporting training data for machine learning
+    TFile *trainTreeFile = new TFile("TrainingDataTTree.root","recreate");
+    TTree *trainTree = new TTree("trainTree","trainTree");
+
+    Int_t MUONtrkID;
+    Int_t MFTtrkID;
+    Double_t MFT_X;
+    Double_t MFT_Y;
+    Double_t MFT_Phi;
+    Double_t MFT_Tanl;
+    Double_t MFT_InvQPt;
+    Double_t MCH_X;
+    Double_t MCH_Y;
+    Double_t MCH_Phi;
+    Double_t MCH_Tanl;
+    Double_t MCH_InvQPt;
+    Double_t MFT_TrackChi2;
+    //Double_t MFT_NClust;
+    Double_t MatchingScore;
+    Int_t Truth;
+
+    trainTree->Branch("MUONtrkID", &MUONtrkID);
+    trainTree->Branch("MFTtrkID", &MFTtrkID);
+    trainTree->Branch("MFT_X", &MFT_X);
+    trainTree->Branch("MFT_Y", &MFT_Y);
+    trainTree->Branch("MFT_Phi", &MFT_Phi);
+    trainTree->Branch("MFT_Tanl", &MFT_Tanl);
+    trainTree->Branch("MFT_InvQPt", &MFT_InvQPt);
+    trainTree->Branch("MCH_X", &MCH_X);
+    trainTree->Branch("MCH_Y", &MCH_Y);
+    trainTree->Branch("MCH_Phi", &MCH_Phi);
+    trainTree->Branch("MCH_Tanl", &MCH_Tanl);
+    trainTree->Branch("MCH_InvQPt", &MCH_InvQPt);
+    trainTree->Branch("MFT_TrackChi2", &MFT_TrackChi2);
+    //trainTree->Branch("MFT_NClust", &MFT_NClust);
+    trainTree->Branch("MatchingScore", &MatchingScore);
+    trainTree->Branch("Truth", &Truth);
+
   /// Matches MFT tracks on a given ROF with MCH tracks in a range of ROFs
   const auto& thisMFTROF = mMFTTrackROFRec[MFTROFId];
   const auto& firstMCHROF = mMCHTrackROFRec[firstMCHROFId];
@@ -378,6 +419,28 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           thisMCHTrack.setMFTMCHMatchingChi2(chi2);
         }
         if constexpr (saveAllMode) { // In saveAllmode save all pairs to output container
+
+          // get features for machine learning
+          MUONtrkID     = MCHId;
+          MFTtrkID      = MFTId;
+          MFT_X         = thisMFTTrack.getX();
+          MFT_Y         = thisMFTTrack.getY();
+          MFT_Phi       = thisMFTTrack.getPhi();
+          MFT_Tanl      = thisMFTTrack.getTanl();
+          MFT_InvQPt    = thisMFTTrack.getInvQPt();
+          MCH_X         = thisMCHTrack.getX();
+          MCH_Y         = thisMCHTrack.getY();
+          MCH_Phi       = thisMCHTrack.getPhi();
+          MCH_Tanl      = thisMCHTrack.getTanl();
+          MCH_InvQPt    = thisMCHTrack.getInvQPt();
+          MFT_TrackChi2 = thisMFTTrack.getTrackChi2();
+          //MFT_NClust    = thisMFTTrack.getNumberOfPoints();
+          MatchingScore = chi2;
+          Truth         = matchLabel.isCorrect() ? 1 : 0;
+
+          // filling features into TTree
+          trainTree->Fill();
+
           thisMCHTrack.setMFTTrackID(MFTId);
           thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchedTracks.emplace_back((thisMCHTrack));
@@ -415,6 +478,11 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
   LOG(debug) << "Finished matching MFT ROF " << MFTROFId << ": " << nMFTTracks << " MFT tracks and " << nMCHTracks << "  MCH Tracks.";
   if (mMCTruthON) {
     LOG(debug) << "   nFakes = " << nFakes << " nTrue = " << nTrue;
+
+    if constexpr (saveAllMode) { // export training data for machine learning
+      trainTreeFile->cd();
+      trainTree->Write();
+    }
   }
 }
 
