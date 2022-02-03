@@ -151,24 +151,6 @@ using FwdTracksCovTable = o2::soa::Table<o2::aod::fwdtrack::SigmaX,
                                          o2::aod::fwdtrack::Rho1PtPhi,
                                          o2::aod::fwdtrack::Rho1PtTgl>;
 
-using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
-                                        o2::aod::mcparticle::PdgCode,
-                                        o2::aod::mcparticle::StatusCode,
-                                        o2::aod::mcparticle::Flags,
-                                        o2::aod::mcparticle::Mother0Id,
-                                        o2::aod::mcparticle::Mother1Id,
-                                        o2::aod::mcparticle::Daughter0Id,
-                                        o2::aod::mcparticle::Daughter1Id,
-                                        o2::aod::mcparticle::Weight,
-                                        o2::aod::mcparticle::Px,
-                                        o2::aod::mcparticle::Py,
-                                        o2::aod::mcparticle::Pz,
-                                        o2::aod::mcparticle::E,
-                                        o2::aod::mcparticle::Vx,
-                                        o2::aod::mcparticle::Vy,
-                                        o2::aod::mcparticle::Vz,
-                                        o2::aod::mcparticle::Vt>;
-
 typedef boost::tuple<int, int, int> Triplet_t;
 
 struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
@@ -283,7 +265,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mTrackChi2 = 0xFFFF0000;            // 7 bits
   uint32_t mTrackCovOffDiag = 0xFFFF0000;      // 7 bits
   uint32_t mTrackSignal = 0xFFFFFF00;          // 15 bits
-  uint32_t mTrackTime = 0xFFFFFF00;            // 15 bits
+  uint32_t mTrackTime = 0xFFFFFFFF;            // use full float precision for time
   uint32_t mTrackTimeError = 0xFFFFFF00;       // 15 bits
   uint32_t mTrackPosEMCAL = 0xFFFFFF00;        // 15 bits
   uint32_t mTracklets = 0xFFFFFF00;            // 15 bits
