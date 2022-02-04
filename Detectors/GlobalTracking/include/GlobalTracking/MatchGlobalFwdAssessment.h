@@ -132,6 +132,7 @@ class GloFwdAssessment
 
   std::unique_ptr<TEfficiency> mChargeMatchEff = nullptr;
   std::unique_ptr<TH2D> mPairingEtaPt = nullptr;
+  std::unique_ptr<TH2D> mTPairingEtaPt = nullptr;
 
   std::vector<std::unique_ptr<TH2D>> mPurityPtInnerVecTH2;
   std::vector<std::unique_ptr<TH2D>> mPurityPtOuterVecTH2;
