@@ -69,6 +69,7 @@ void GloFwdAssessment::reset()
     mChargeMatchEff->SetPassedHistogram(*hC, "");
 
     mPairingEtaPt->Reset();
+    mTPairingEtaPt->Reset();
     for (auto& h : mTH3Histos) {
       h->Reset();
     }
@@ -582,6 +583,7 @@ void GloFwdAssessment::finalizeRecoAndPairables()
     auto& hTrue_MC = mTH3Histos[kTH3GMTruePtEtaMatchScore_MC];
     auto& hPairable = mTH3Histos[kTH3GMPairablePtEtaZ];
 
+    auto RecoEtaPt = (TH2D*)Reco->Project3D("xy COLZ");
     auto TrueEtaPt_MC = (TH2D*)hTrue_MC->Project3D("xy COLZ");
     auto PairableEtaPt = (TH2D*)hPairable->Project3D("xy COLZ");
 
