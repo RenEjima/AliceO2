@@ -594,7 +594,7 @@ void GloFwdAssessment::finalizeRecoAndPairables()
 
     mTPairingEtaPt = (std::unique_ptr<TH2D>)static_cast<TH2D*>(TrueEtaPt_MC->Clone());
     mTPairingEtaPt->Divide(PairableEtaPt);
-    mTPairingEtaPt->SetNameTitle("GMTrackPairingEffEtaPt", "PairingEffEtaPt");
+    mTPairingEtaPt->SetNameTitle("GMTrackTruePairingEffEtaPt", "TruePairingEffEtaPt");
     mTPairingEtaPt->SetOption("COLZ");
   }
 }
@@ -617,8 +617,8 @@ void GloFwdAssessment::finalizePurityAndEff()
   auto minBin = Reco->GetYaxis()->FindBin(2.4);
   auto midBin = Reco->GetYaxis()->FindBin(3.0);
   auto maxBin = Reco->GetYaxis()->FindBin(3.6);
-  auto PairablePtProjInner = (TH1*)hTrue->ProjectionX("PairableInner", midBin, maxBin);
-  auto PairablePtProjOuter = (TH1*)hTrue->ProjectionX("PairableOuter", minBin, midBin);
+  auto PairablePtProjInner = (TH1*)hPairable->ProjectionX("PairableInner", midBin, maxBin);
+  auto PairablePtProjOuter = (TH1*)hPairable->ProjectionX("PairableOuter", minBin, midBin);
 
   auto RecoEtaPt = (TH2D*)Reco->Project3D("xy COLZ");
   auto TrueEtaPt = (TH2D *)hTrue->Project3D("xy COLZ");
