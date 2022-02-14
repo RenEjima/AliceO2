@@ -74,6 +74,12 @@ class GloFwdAssessment
   void finalizeAnalysis();
   void finalizeRecoAndPairables();
   void finalizePurityAndEff();
+  void finalizeCutConfig(float minCut, float maxCut, int nSteps)
+  {
+    mFinalizeMinCut = minCut;
+    mFinalizeMaxCut = maxCut;
+    mNFinalizeSteps = nSteps;
+  }
 
   void getHistos(TObjArray& objar);
   void setBz(float bz) { mBz = bz; }
@@ -132,16 +138,16 @@ class GloFwdAssessment
 
   std::unique_ptr<TEfficiency> mChargeMatchEff = nullptr;
   std::unique_ptr<TH2D> mPairingEtaPt = nullptr;
-  std::unique_ptr<TH2D> mTPairingEtaPt = nullptr;
+  std::unique_ptr<TH2D> mTruePairingEtaPt = nullptr;
 
   std::vector<std::unique_ptr<TH2D>> mPurityPtInnerVecTH2;
   std::vector<std::unique_ptr<TH2D>> mPurityPtOuterVecTH2;
   std::vector<std::unique_ptr<TH1D>> mPairingPtInnerVecTH1;
   std::vector<std::unique_ptr<TH1D>> mPairingPtOuterVecTH1;
-  std::vector<std::unique_ptr<TH1D>> mTPairingPtInnerVecTH1;
-  std::vector<std::unique_ptr<TH1D>> mTPairingPtOuterVecTH1;
+  std::vector<std::unique_ptr<TH1D>> mTruePairingPtInnerVecTH1;
+  std::vector<std::unique_ptr<TH1D>> mTruePairingPtOuterVecTH1;
   std::vector<std::unique_ptr<TH2D>> mPairingEtaPtVec;
-  std::vector<std::unique_ptr<TH2D>> mTPairingEtaPtVec;
+  std::vector<std::unique_ptr<TH2D>> mTruePairingEtaPtVec;
 
   enum TH3HistosCodes {
     kTH3GMTrackDeltaXDeltaYEta,
@@ -187,8 +193,7 @@ class GloFwdAssessment
     {kTH3GMTrackPtEtaMatchScore, "TH3GMTrackPtEtaMatchScore"},
     {kTH3GMTruePtEtaChi2, "TH3GMTruePtEtaChi2"},
     {kTH3GMTruePtEtaMatchScore, "TH3GMTruePtEtaMatchScore"},
-    {kTH3GMTruePtEtaMatchScore_MC, "TH3GMTruePtEtaMatchScore_MC"}
-  };
+    {kTH3GMTruePtEtaMatchScore_MC, "TH3GMTruePtEtaMatchScore_MC"}};
 
   std::map<int, const char*> TH3Titles{
     {kTH3GMTrackDeltaXDeltaYEta, "TH3GMTrackDeltaXDeltaYEta"},
@@ -210,8 +215,7 @@ class GloFwdAssessment
     {kTH3GMTrackPtEtaMatchScore, "TH3GMTrackPtEtaMatchScore"},
     {kTH3GMTruePtEtaChi2, "TH3GMTruePtEtaChi2"},
     {kTH3GMTruePtEtaMatchScore, "TH3GMTruePtEtaMatchScore"},
-    {kTH3GMTruePtEtaMatchScore_MC, "TH3GMTruePtEtaMatchScore_MC"}
-  };
+    {kTH3GMTruePtEtaMatchScore_MC, "TH3GMTruePtEtaMatchScore_MC"}};
 
   std::map<int, std::array<double, 9>> TH3Binning{
     {kTH3GMTrackDeltaXDeltaYEta, {16, 2.2, 3.8, 1000, -1000, 1000, 1000, -1000, 1000}},
@@ -233,8 +237,7 @@ class GloFwdAssessment
     {kTH3GMTrackPtEtaMatchScore, {40, 0, 20, 16, 2.2, 3.8, 2000, 0, 20.0}},
     {kTH3GMTruePtEtaChi2, {40, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}},
     {kTH3GMTruePtEtaMatchScore, {40, 0, 20, 16, 2.2, 3.8, 2000, 0, 20.0}},
-    {kTH3GMTruePtEtaMatchScore_MC, {40, 0, 20, 16, 2.2, 3.8, 2000, 0, 20.0}},
-  };
+    {kTH3GMTruePtEtaMatchScore_MC, {40, 0, 20, 16, 2.2, 3.8, 2000, 0, 20.0}}};
 
   std::map<int, const char*> TH3XaxisTitles{
     {kTH3GMTrackDeltaXDeltaYEta, R"(\\eta_{MC})"},
@@ -256,8 +259,7 @@ class GloFwdAssessment
     {kTH3GMTrackPtEtaMatchScore, R"(p_{t}_{Fit})"},
     {kTH3GMTruePtEtaChi2, R"(p_{t}_{Fit})"},
     {kTH3GMTruePtEtaMatchScore, R"(p_{t}_{Fit})"},
-    {kTH3GMTruePtEtaMatchScore_MC, R"(p_{t}_{MC})"},
-  };
+    {kTH3GMTruePtEtaMatchScore_MC, R"(p_{t}_{MC})"},};
 
   std::map<int, const char*> TH3YaxisTitles{
     {kTH3GMTrackDeltaXDeltaYEta, R"(X_{residual \rightarrow vtx} (\mu m))"},
@@ -279,8 +281,7 @@ class GloFwdAssessment
     {kTH3GMTrackPtEtaMatchScore, R"(\eta_{Fit})"},
     {kTH3GMTruePtEtaChi2, R"(\eta_{Fit})"},
     {kTH3GMTruePtEtaMatchScore, R"(\eta_{Fit})"},
-    {kTH3GMTruePtEtaMatchScore_MC, R"(\eta_{MC})"}
-  };
+    {kTH3GMTruePtEtaMatchScore_MC, R"(\eta_{MC})"}};
 
   std::map<int, const char*> TH3ZaxisTitles{
     {kTH3GMTrackDeltaXDeltaYEta, R"(Y_{residual \rightarrow vtx} (\mu m))"},
@@ -302,8 +303,7 @@ class GloFwdAssessment
     {kTH3GMTrackPtEtaMatchScore, R"(Matching Score)"},
     {kTH3GMTruePtEtaChi2, R"(Match \chi^2)"},
     {kTH3GMTruePtEtaMatchScore, R"(Matching Score)"},
-    {kTH3GMTruePtEtaMatchScore_MC, R"(Matching Score)"},
-  };
+    {kTH3GMTruePtEtaMatchScore_MC, R"(Matching Score)"}};
 
   enum TH3SlicedCodes {
     kDeltaXVertexVsEta,
@@ -379,8 +379,8 @@ class GloFwdAssessment
     kPairingEffPtOuter,
     kPairingEffPtInner,
     kPurityVsEfficiency,
-    kTPairingEffPtOuter,
-    kTPairingEffPtInner,
+    kTruePairingEffPtOuter,
+    kTruePairingEffPtInner,
     kPurityVsTrueEfficiency,
     kNGMAssesmentCanvases
   };
@@ -390,8 +390,8 @@ class GloFwdAssessment
     {kPurityPtInner, "PurityPtInner"},
     {kPairingEffPtOuter, "PairingEffPtOuter"},
     {kPairingEffPtInner, "PairingEffPtInner"},
-    {kTPairingEffPtOuter, "TruePairingEffPtOuter"},
-    {kTPairingEffPtInner, "TruePairingEffPtInner"},
+    {kTruePairingEffPtOuter, "TruePairingEffPtOuter"},
+    {kTruePairingEffPtInner, "TruePairingEffPtInner"},
     {kPurityVsEfficiency, "PurityVsEfficiency"},
     {kPurityVsTrueEfficiency, "PurityVsTrueEfficiency"}};
 
@@ -402,6 +402,9 @@ class GloFwdAssessment
   float mBz = 0;
   bool mMIDFilterEnabled = true;
   bool mFinalizeAnalysis = false;
+  float mFinalizeMinCut = 0.f;
+  float mFinalizeMaxCut = 15.f;
+  int mNFinalizeSteps = 15;
 
   ClassDefNV(GloFwdAssessment, 1);
 };
