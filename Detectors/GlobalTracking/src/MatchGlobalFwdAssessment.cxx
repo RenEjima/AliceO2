@@ -69,7 +69,7 @@ void GloFwdAssessment::reset()
     mChargeMatchEff->SetPassedHistogram(*hC, "");
 
     mPairingEtaPt->Reset();
-    mTPairingEtaPt->Reset();
+    mTruePairingEtaPt->Reset();
     for (auto& h : mTH3Histos) {
       h->Reset();
     }
@@ -335,7 +335,6 @@ void GloFwdAssessment::processRecoAndTrueTracks()
     auto trackLabel = mFwdTrackLabels[trkId];
     if (trackLabel.isCorrect()) {
       TrackType = kRecoTrue;
-
       auto evH = mcReader.getMCEventHeader(trackLabel.getSourceID(), trackLabel.getEventID());
       auto zVtx = evH.GetZ();
 
@@ -365,7 +364,6 @@ void GloFwdAssessment::processRecoAndTrueTracks()
       auto phi_res = fwdTrack.getPhi() - phiGen;
       auto tanl_res = fwdTrack.getTanl() - tanlGen;
       auto invQPt_res = invQPt_Rec - invQPtGen;
-
       mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
       mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
       mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
@@ -388,6 +386,7 @@ void GloFwdAssessment::processRecoAndTrueTracks()
       mTH3Histos[kTH3GMTrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(fwdTrack.getCovariances()(3, 3)));
       mTH3Histos[kTH3GMTrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(fwdTrack.getCovariances()(4, 4)));
       mTH3Histos[kTH3GMTrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
+      mTH3Histos[kTH3GMTrackInvQPtResMCHPtEta]->Fill(ptGen, etaGen, (invQPt_MCH - invQPtGen) / invQPtGen);
       mTH3Histos[kTH3GMTrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nMFTClusters - 5));
       mTH3Histos[kTH3GMTruePtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
       mTH3Histos[kTH3GMTruePtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
@@ -461,7 +460,7 @@ void GloFwdAssessment::getHistos(TObjArray& objar)
 
     objar.Add(mChargeMatchEff.get());
     objar.Add(mPairingEtaPt.get());
-    objar.Add(mTPairingEtaPt.get());
+    objar.Add(mTruePairingEtaPt.get());
 
     if (mFinalizeAnalysis) {
       for (int slicedCanvas = 0; slicedCanvas < kNSlicedTH3; slicedCanvas++) {
@@ -592,10 +591,10 @@ void GloFwdAssessment::finalizeRecoAndPairables()
     mPairingEtaPt->SetNameTitle("GMTrackPairingEffEtaPt", "PairingEffEtaPt");
     mPairingEtaPt->SetOption("COLZ");
 
-    mTPairingEtaPt = (std::unique_ptr<TH2D>)static_cast<TH2D*>(TrueEtaPt_MC->Clone());
-    mTPairingEtaPt->Divide(PairableEtaPt);
-    mTPairingEtaPt->SetNameTitle("GMTrackTruePairingEffEtaPt", "TruePairingEffEtaPt");
-    mTPairingEtaPt->SetOption("COLZ");
+    mTruePairingEtaPt = (std::unique_ptr<TH2D>)static_cast<TH2D*>(TrueEtaPt_MC->Clone());
+    mTruePairingEtaPt->Divide(PairableEtaPt);
+    mTruePairingEtaPt->SetNameTitle("GMTrackTruePairingEffEtaPt", "TruePairingEffEtaPt");
+    mTruePairingEtaPt->SetOption("COLZ");
   }
 }
 
@@ -627,10 +626,8 @@ void GloFwdAssessment::finalizePurityAndEff()
   auto PairablePt = (TH1D*)hPairable->Project3D("x");
 
   /// Purity vs score cuts
-  float maxCut = 15.f;
-  int nSteps = 15;
-  float scoreStep = maxCut / nSteps;
-  for (float scoreCut = scoreStep; scoreCut < maxCut; scoreCut += scoreStep) {
+  float scoreStep = (mFinalizeMaxCut - mFinalizeMinCut) / mNFinalizeSteps;
+  for (float scoreCut = mFinalizeMinCut; scoreCut <= mFinalizeMaxCut; scoreCut += scoreStep) {
 
     auto RecoPtProj = (TH1*)Reco->ProjectionX(Form("_RecoPtProj%.2f", scoreCut));
     auto TruePtProj = (TH1*)hTrue->ProjectionX(Form("_TruePtProj%.2f", scoreCut));
@@ -642,75 +639,74 @@ void GloFwdAssessment::finalizePurityAndEff()
     auto TruePtProjInner = (TH1*)hTrue->ProjectionX(Form("_InnerTrueCut_%.2f", scoreCut), midBin, maxBin, 0, maxScoreBin);
     auto TruePtProjInner_MC = (TH1 *)hTrue_MC->ProjectionX(Form("_InnerTrueCut_MC_%.2f", scoreCut), midBin, maxBin, 0, maxScoreBin);
 
-    auto& hPInner = mPurityPtInnerVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjInner->Clone()));
-    hPInner->Divide(RecoPtProjInner);
-    hPInner->SetNameTitle(Form("TH2GMTrackPurityInnerEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hPInner->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
-    hPInner->SetOption("COLZ");
-    hPInner->SetMarkerStyle(kFullCircle);
-    hPInner->SetMinimum(0.0);
-    hPInner->SetMaximum(1.2);
+    auto& hPurityInner = mPurityPtInnerVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjInner->Clone()));
+    hPurityInner->Divide(RecoPtProjInner); // Global Pairing Purity = N_true / N_reco
+    hPurityInner->SetNameTitle(Form("TH2GMTrackPurityInnerEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPurityInner->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
+    hPurityInner->SetOption("COLZ");
+    hPurityInner->SetMarkerStyle(kFullCircle);
+    hPurityInner->SetMinimum(0.0);
+    hPurityInner->SetMaximum(1.2);
 
-    auto& hInner = mPairingPtInnerVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjInner->Clone()));
-    hInner->Divide(PairablePtProjInner);
-    hInner->SetNameTitle(Form("GMTrackPairingEffInnerPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hInner->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
-    hInner->SetOption("COLZ");
-    hInner->SetMarkerStyle(kFullCircle);
-    hInner->SetMinimum(0.0);
-    hInner->SetMaximum(1.8);
+    auto& hPairingEffInner = mPairingPtInnerVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjInner->Clone()));
+    hPairingEffInner->Divide(PairablePtProjInner); // Pairing Efficiency = N_reco / N_Pairable
+    hPairingEffInner->SetNameTitle(Form("GMTrackPairingEffInnerPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPairingEffInner->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
+    hPairingEffInner->SetOption("COLZ");
+    hPairingEffInner->SetMarkerStyle(kFullCircle);
+    hPairingEffInner->SetMinimum(0.0);
+    hPairingEffInner->SetMaximum(1.8);
 
-    auto &hTInner = mTPairingPtInnerVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D *>(TruePtProjInner_MC->Clone()));
-    hTInner->Divide(PairablePtProjInner);
-    hTInner->SetNameTitle(Form("GMTrackTruePairingEffInnerPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hTInner->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
-    hTInner->SetOption("COLZ");
-    hTInner->SetMarkerStyle(kFullCircle);
-    hTInner->SetMinimum(0.0);
-    hTInner->SetMaximum(1.2);
+    auto &hTruePairingEffInner = mTruePairingPtInnerVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D *>(TruePtProjInner_MC->Clone()));
+    hTruePairingEffInner->Divide(PairablePtProjInner);
+    hTruePairingEffInner->SetNameTitle(Form("GMTrackTruePairingEffInnerPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hTruePairingEffInner->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
+    hTruePairingEffInner->SetOption("COLZ");
+    hTruePairingEffInner->SetMarkerStyle(kFullCircle);
+    hTruePairingEffInner->SetMinimum(0.0);
+    hTruePairingEffInner->SetMaximum(1.2);
 
     // Outer pseudorapidity
     auto RecoPtProjOuter = (TH1*)Reco->ProjectionX(Form("_OuterRecoCut_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
     auto TruePtProjOuter = (TH1*)hTrue->ProjectionX(Form("_OuterTrueCut_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
-
     auto TruePtProjOuter_MC = (TH1 *)hTrue_MC->ProjectionX(Form("_OuterTrueCut_MC_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
 
-    auto& hPOuter = mPurityPtOuterVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjOuter->Clone()));
-    hPOuter->Divide(RecoPtProjOuter);
-    hPOuter->SetNameTitle(Form("TH2GMTrackPurityOuterEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hPOuter->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
-    hPOuter->SetOption("COLZ");
-    hPOuter->SetMarkerStyle(kFullTriangleUp);
-    hPOuter->SetMinimum(0.0);
-    hPOuter->SetMaximum(1.2);
+    auto& hPurityOuter = mPurityPtOuterVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjOuter->Clone()));
+    hPurityOuter->Divide(RecoPtProjOuter); // Global Pairing Purity = N_true / N_reco
+    hPurityOuter->SetNameTitle(Form("TH2GMTrackPurityOuterEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPurityOuter->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
+    hPurityOuter->SetOption("COLZ");
+    hPurityOuter->SetMarkerStyle(kFullTriangleUp);
+    hPurityOuter->SetMinimum(0.0);
+    hPurityOuter->SetMaximum(1.2);
 
-    auto& hOuter = mPairingPtOuterVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjOuter->Clone()));
-    hOuter->Divide(PairablePtProjInner);
-    hOuter->SetNameTitle(Form("GMTrackPairingEffOuterPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hOuter->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
-    hOuter->SetOption("COLZ");
-    hOuter->SetMarkerStyle(kFullTriangleUp);
-    hOuter->SetMinimum(0.0);
-    hOuter->SetMaximum(1.8);
+    auto& hPairingEffOuter = mPairingPtOuterVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(RecoPtProjOuter->Clone()));
+    hPairingEffOuter->Divide(PairablePtProjInner); // Pairing Efficiency = N_reco / N_Pairable
+    hPairingEffOuter->SetNameTitle(Form("GMTrackPairingEffOuterPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPairingEffOuter->GetYaxis()->SetTitle("Pairing Efficiency [ N_{Rec} / N_{pairable}]");
+    hPairingEffOuter->SetOption("COLZ");
+    hPairingEffOuter->SetMarkerStyle(kFullTriangleUp);
+    hPairingEffOuter->SetMinimum(0.0);
+    hPairingEffOuter->SetMaximum(1.8);
 
-    auto &hTOuter = mTPairingPtOuterVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D *>(TruePtProjOuter_MC->Clone()));
-    hTOuter->Divide(PairablePtProjOuter);
-    hTOuter->SetNameTitle(Form("GMTrackTruePairingEffOuterPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
-    hTOuter->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
-    hTOuter->SetOption("COLZ");
-    hTOuter->SetMarkerStyle(kFullTriangleUp);
-    hTOuter->SetMinimum(0.0);
-    hTOuter->SetMaximum(1.2);
+    auto &hTruePairingEffOuter = mTruePairingPtOuterVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D *>(TruePtProjOuter_MC->Clone()));
+    hTruePairingEffOuter->Divide(PairablePtProjOuter);
+    hTruePairingEffOuter->SetNameTitle(Form("GMTrackTruePairingEffOuterPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hTruePairingEffOuter->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
+    hTruePairingEffOuter->SetOption("COLZ");
+    hTruePairingEffOuter->SetMarkerStyle(kFullTriangleUp);
+    hTruePairingEffOuter->SetMinimum(0.0);
+    hTruePairingEffOuter->SetMaximum(1.2);
 
     mPairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(RecoEtaPt->Clone()));
-    mPairingEtaPtVec.back()->Divide(PairableEtaPt);
+    mPairingEtaPtVec.back()->Divide(PairableEtaPt); // Pairing Efficiency = N_reco / N_Pairable
     mPairingEtaPtVec.back()->SetNameTitle(Form("GMTrackPairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
     mPairingEtaPtVec.back()->SetOption("COLZ");
 
-    mTPairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D *>(TrueEtaPt_MC->Clone()));
-    mTPairingEtaPtVec.back()->Divide(PairableEtaPt);
-    mTPairingEtaPtVec.back()->SetNameTitle(Form("GMTrackTruePairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
-    mTPairingEtaPtVec.back()->SetOption("COLZ");
+    mTruePairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D *>(TrueEtaPt_MC->Clone()));
+    mTruePairingEtaPtVec.back()->Divide(PairableEtaPt);
+    mTruePairingEtaPtVec.back()->SetNameTitle(Form("GMTrackTruePairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
+    mTruePairingEtaPtVec.back()->SetOption("COLZ");
   }
 
   auto nCanvas = kPurityPtOuter;
@@ -725,26 +721,24 @@ void GloFwdAssessment::finalizePurityAndEff()
   std::vector<float> verylowPtInnerPurity;
   std::vector<float> verylowPtOuterEff;
   std::vector<float> verylowPtInnerEff;
-  std::vector<float> veryLowPtOuterTEff;
-  std::vector<float> veryLowPtInnerTEff;
+  std::vector<float> veryLowPtOuterTrueEff;
+  std::vector<float> veryLowPtInnerTrueEff;
   std::vector<float> lowPtOuterPurity;
   std::vector<float> lowPtInnerPurity;
   std::vector<float> lowPtOuterEff;
   std::vector<float> lowPtInnerEff;
-  std::vector<float> lowPtOuterTEff;
-  std::vector<float> lowPtInnerTEff;
+  std::vector<float> lowPtOuterTrueEff;
+  std::vector<float> lowPtInnerTrueEff;
   std::vector<float> highPtOuterPurity;
   std::vector<float> highPtInnerPurity;
   std::vector<float> highPtOuterEff;
   std::vector<float> highPtInnerEff;
-  std::vector<float> highPtOuterTEff;
-  std::vector<float> highPtInnerTEff;
+  std::vector<float> highPtOuterTrueEff;
+  std::vector<float> highPtInnerTrueEff;
 
   auto veryLowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.25);
   auto lowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.75);
   auto highptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(2.25);
-
-  auto maxEff = 1.f;
 
   for (auto& th2 : mPurityPtOuterVecTH2) {
     if (first) {
@@ -857,23 +851,23 @@ void GloFwdAssessment::finalizePurityAndEff()
   mAssessmentCanvas[nCanvas]->SetTicky();
   mAssessmentCanvas[nCanvas]->SetGridy();
 
-  nCanvas = kTPairingEffPtOuter;
+  nCanvas = kTruePairingEffPtOuter;
   canvasName = GMAssesmentNames[nCanvas];
   mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
   mAssessmentCanvas[nCanvas]->UseCurrentStyle();
   mAssessmentCanvas[nCanvas]->cd();
   first = true;
 
-  for (auto &th2 : mTPairingPtOuterVecTH1){
+  for (auto &th2 : mTruePairingPtOuterVecTH1){
     if (first){
       option = "hist P PMC";
     }else{
       option = "hist SAME P PMC";
     }
     first = false;
-    veryLowPtOuterTEff.push_back(th2->GetBinContent(veryLowptBin));
-    lowPtOuterTEff.push_back(th2->GetBinContent(lowptBin));
-    highPtOuterTEff.push_back(th2->GetBinContent(highptBin));
+    veryLowPtOuterTrueEff.push_back(th2->GetBinContent(veryLowptBin));
+    lowPtOuterTrueEff.push_back(th2->GetBinContent(lowptBin));
+    highPtOuterTrueEff.push_back(th2->GetBinContent(highptBin));
     th2->Draw(option.c_str());
   }
   t = new TPaveText(0.2223748, 0.9069355, 0.7776252, 0.965, "brNDC");
@@ -886,23 +880,23 @@ void GloFwdAssessment::finalizePurityAndEff()
   mAssessmentCanvas[nCanvas]->SetTicky();
   mAssessmentCanvas[nCanvas]->SetGridy();
 
-  nCanvas = kTPairingEffPtInner;
+  nCanvas = kTruePairingEffPtInner;
   canvasName = GMAssesmentNames[nCanvas];
   mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
   mAssessmentCanvas[nCanvas]->UseCurrentStyle();
   mAssessmentCanvas[nCanvas]->cd();
   first = true;
 
-  for (auto &th2 : mTPairingPtInnerVecTH1){
+  for (auto &th2 : mTruePairingPtInnerVecTH1){
     if (first){
       option = "hist P PMC";
     }else{
       option = "hist SAME P PMC";
     }
     first = false;
-    veryLowPtInnerTEff.push_back(th2->GetBinContent(veryLowptBin));
-    lowPtInnerTEff.push_back(th2->GetBinContent(lowptBin));
-    highPtInnerTEff.push_back(th2->GetBinContent(highptBin));
+    veryLowPtInnerTrueEff.push_back(th2->GetBinContent(veryLowptBin));
+    lowPtInnerTrueEff.push_back(th2->GetBinContent(lowptBin));
+    highPtInnerTrueEff.push_back(th2->GetBinContent(highptBin));
     th2->Draw(option.c_str());
   }
   t = new TPaveText(0.2223748, 0.9069355, 0.7776252, 0.965, "brNDC");
@@ -963,7 +957,7 @@ void GloFwdAssessment::finalizePurityAndEff()
   canvasName = GMAssesmentNames[nCanvas];
   mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
 
-  TGraph *gr2 = new TGraph(highPtInnerTEff.size(), &highPtInnerTEff[0], &highPtInnerPurity[0]);
+  TGraph *gr2 = new TGraph(highPtInnerTrueEff.size(), &highPtInnerTrueEff[0], &highPtInnerPurity[0]);
   gr2->SetMinimum(0);
   gr2->SetMaximum(1.01);
 
@@ -974,26 +968,26 @@ void GloFwdAssessment::finalizePurityAndEff()
   gr2->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
   gr2->SetTitle("p_{t} = 2.25 || (3.0 < #eta < 3.6 )");
 
-  gr2 = new TGraph(highPtOuterTEff.size(), &highPtOuterTEff[0], &highPtOuterPurity[0]);
+  gr2 = new TGraph(highPtOuterTrueEff.size(), &highPtOuterTrueEff[0], &highPtOuterPurity[0]);
   gr2->Draw("P PMC SAME");
   gr2->SetMarkerStyle(kFullTriangleUp);
 
   gr2->SetTitle("p_{t} = 2.25 || (2.4 < #eta < 3.0)");
 
-  gr2 = new TGraph(lowPtInnerTEff.size(), &lowPtInnerTEff[0], &lowPtInnerPurity[0]);
+  gr2 = new TGraph(lowPtInnerTrueEff.size(), &lowPtInnerTrueEff[0], &lowPtInnerPurity[0]);
   gr2->Draw("P PMC SAME");
   gr2->SetTitle("p_{t} = 0.75 || (3.0 < #eta < 3.6 )");
 
-  gr2 = new TGraph(lowPtOuterTEff.size(), &lowPtOuterTEff[0], &lowPtOuterPurity[0]);
+  gr2 = new TGraph(lowPtOuterTrueEff.size(), &lowPtOuterTrueEff[0], &lowPtOuterPurity[0]);
   gr2->Draw("P PMC SAME");
   gr2->SetMarkerStyle(kFullTriangleUp);
   gr2->SetTitle("p_{t} = 0.75 || (2.4 < #eta < 3.0)");
 
-  gr2 = new TGraph(veryLowPtInnerTEff.size(), &veryLowPtInnerTEff[0], &verylowPtInnerPurity[0]);
+  gr2 = new TGraph(veryLowPtInnerTrueEff.size(), &veryLowPtInnerTrueEff[0], &verylowPtInnerPurity[0]);
   gr2->Draw("P PMC SAME");
   gr2->SetTitle("p_{t} = 0.25 || (3.0 < #eta < 3.6)");
 
-  gr2 = new TGraph(veryLowPtOuterTEff.size(), &veryLowPtOuterTEff[0], &verylowPtOuterPurity[0]);
+  gr2 = new TGraph(veryLowPtOuterTrueEff.size(), &veryLowPtOuterTrueEff[0], &verylowPtOuterPurity[0]);
   gr2->Draw("P PMC SAME");
   gr2->SetMarkerStyle(kFullTriangleUp);
 
