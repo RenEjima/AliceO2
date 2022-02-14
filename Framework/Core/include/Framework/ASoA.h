@@ -1388,7 +1388,7 @@ struct EquivalentIndex {
 };
 
 template <typename B, typename E>
-constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value;
+constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value || EquivalentIndex<E, B>::value;
 
 template <typename T, typename... Os>
 constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
@@ -1406,6 +1406,7 @@ constexpr bool is_binding_compatible_v()
   return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
+void notBoundTable(const char* tableName);
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \
@@ -1535,7 +1536,9 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      assert(mBinding != nullptr);                                                                      \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                   \
+        o2::soa::notBoundTable(#_Table_);                                                               \
+      }                                                                                                 \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
         return static_cast<T const*>(mBinding)->emptySlice();                                           \
       }                                                                                                 \
@@ -1609,7 +1612,9 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      assert(mBinding != nullptr);                                                               \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
@@ -1626,6 +1631,34 @@ constexpr bool is_binding_compatible_v()
     auto _Getter_() const                                                                        \
     {                                                                                            \
       return _Getter_##_as<binding_t>();                                                         \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_first_as() const                                                             \
+    {                                                                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_last_as() const                                                              \
+    {                                                                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
+    }                                                                                            \
+                                                                                                 \
+    auto _Getter_first() const                                                                   \
+    {                                                                                            \
+      return _Getter_##_first_as<binding_t>();                                                   \
+    }                                                                                            \
+                                                                                                 \
+    auto _Getter_last() const                                                                    \
+    {                                                                                            \
+      return _Getter_##_last_as<binding_t>();                                                    \
     }                                                                                            \
                                                                                                  \
     template <typename T>                                                                        \
@@ -1687,7 +1720,9 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                                                         \
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
-      assert(mBinding != nullptr);                                                                                                \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                                             \
+        o2::soa::notBoundTable(#_Table_);                                                                                         \
+      }                                                                                                                           \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                               \
         throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                                        \
       }                                                                                                                           \
@@ -1759,7 +1794,6 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                                               \
     auto _Getter_##_as() const                                                                                          \
     {                                                                                                                   \
-      assert(mBinding != nullptr);                                                                                      \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                     \
         throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                              \
       }                                                                                                                 \
@@ -1813,7 +1847,6 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                               \
     auto _Getter_##_as() const                                                                          \
     {                                                                                                   \
-      assert(mBinding != nullptr);                                                                      \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                     \
         return static_cast<T const*>(mBinding)->emptySlice();                                           \
       }                                                                                                 \
@@ -1867,7 +1900,6 @@ constexpr bool is_binding_compatible_v()
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      assert(mBinding != nullptr);                                                               \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
@@ -1879,6 +1911,18 @@ constexpr bool is_binding_compatible_v()
         result.push_back(static_cast<T const*>(mBinding)->rawIteratorAt(i));                     \
       }                                                                                          \
       return result;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_first_as() const                                                             \
+    {                                                                                            \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    auto _Getter_##_last_as() const                                                              \
+    {                                                                                            \
+      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
     }                                                                                            \
                                                                                                  \
     bool setCurrentRaw(void const* current)                                                      \

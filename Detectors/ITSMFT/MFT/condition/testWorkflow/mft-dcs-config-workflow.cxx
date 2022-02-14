@@ -9,27 +9,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0ChannelTimeCalibrationSpec.h"
-#include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
+#include "Framework/TypeTraits.h"
+#include "Framework/DataProcessorSpec.h"
+#include "MFTDCSConfigProcessorSpec.h"
 
 using namespace o2::framework;
 
+// we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  //probably some option will be added
-  std::vector<o2::framework::ConfigParamSpec> options;
-  options.push_back(ConfigParamSpec{"time-calib-fitting-nbins", VariantType::Int, 100, {""}});
+  // option allowing to set parameters
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
   std::swap(workflowOptions, options);
 }
 
+// ------------------------------------------------------------------
+
 #include "Framework/runDataProcessing.h"
 
-using namespace o2::framework;
-WorkflowSpec defineDataProcessing(ConfigContext const& config)
+WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  WorkflowSpec workflow;
-  o2::ft0::FT0ChannelTimeTimeSlotContainer::sGausFitBins = config.options().get<int>("time-calib-fitting-nbins");
-  workflow.emplace_back(o2::ft0::getFT0ChannelTimeCalibrationSpec());
-  //add calib spec here...
-  return workflow;
+  WorkflowSpec specs;
+  specs.emplace_back(getMFTDCSConfigProcessorSpec());
+  return specs;
 }
