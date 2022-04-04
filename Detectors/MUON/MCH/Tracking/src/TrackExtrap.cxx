@@ -297,7 +297,7 @@ bool TrackExtrap::extrapToVertex(TrackParam& trackParam, double xVtx, double yVt
       return false;
     } else {
       LOG(warning) << "Ending Z (" << zVtx << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
-      return false;
+      //return false;
     }
   }
 
@@ -311,7 +311,7 @@ bool TrackExtrap::extrapToVertex(TrackParam& trackParam, double xVtx, double yVt
       return false;
     } else {
       LOG(warning) << "Starting Z (" << trackParam.getZ() << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
-      return false;
+      //return false;
     }
   }
 
