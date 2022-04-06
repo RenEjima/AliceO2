@@ -403,8 +403,8 @@ class GloFwdAssessment
   bool mMIDFilterEnabled = true;
   bool mFinalizeAnalysis = false;
   float mFinalizeMinCut = 0.f;
-  float mFinalizeMaxCut = 1.f;
-  int mNFinalizeSteps = 10;
+  float mFinalizeMaxCut = 15.f;
+  int mNFinalizeSteps = 15;
 
   ClassDefNV(GloFwdAssessment, 1);
 };
