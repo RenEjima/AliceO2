@@ -818,7 +818,7 @@ void GloFwdAssessment::finalizePurityAndEff()
   mAssessmentCanvas[nCanvas]->SetTicky();
   mAssessmentCanvas[nCanvas]->SetGridy();
 
-  nCanvas = kPairingEffPtOuter;
+  nCanvas = kPurityPt;
   canvasName = GMAssesmentNames[nCanvas];
   mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
   mAssessmentCanvas[nCanvas]->UseCurrentStyle();
