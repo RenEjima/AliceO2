@@ -700,7 +700,7 @@ void GloFwdAssessment::finalizePurityAndEff()
 
     // Not devide pseudorapidity region
     auto& hPurity = mPurityPtVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProj->Clone()));
-    hPurity->Divide(RecoPtProj); // Global Pairing Purity = N_true / N_reco
+    hPurity->Divide((TH1D*)Reco->ProjectX("x")); // Global Pairing Purity = N_true / N_reco
     hPurity->SetNameTitle(Form("TH2GMTrackPurityEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
     hPurity->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
     hPurity->SetOption("COLZ");
@@ -709,7 +709,7 @@ void GloFwdAssessment::finalizePurityAndEff()
     hPurity->SetMaximum(1.2);
 
     auto& hTruePairingEff = mTruePairingPtVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(TruePtProj_MC->Clone()));
-    hTruePairingEff->Divide(PairablePtProj);
+    hTruePairingEff->Divide(PairablePt);
     hTruePairingEff->SetNameTitle(Form("GMTrackTruePairingEffPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
     hTruePairingEff->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
     hTruePairingEff->SetOption("COLZ");
@@ -759,7 +759,7 @@ void GloFwdAssessment::finalizePurityAndEff()
   std::vector<float> highPtInnerEff;
   std::vector<float> highPtOuterTrueEff;
   std::vector<float> highPtInnerTrueEff;
-  std::vector<flaot> highPtTrueEff;
+  std::vector<float> highPtTrueEff;
 
   auto veryLowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.25);
   auto lowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.75);
