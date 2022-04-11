@@ -700,7 +700,7 @@ void GloFwdAssessment::finalizePurityAndEff()
 
     // Not devide pseudorapidity region
     auto& hPurity = mPurityPtVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProj->Clone()));
-    hPurity->Divide((TH1D*)Reco->ProjectX("x")); // Global Pairing Purity = N_true / N_reco
+    hPurity->Divide((TH1D*)Reco->ProjectionX("x")); // Global Pairing Purity = N_true / N_reco
     hPurity->SetNameTitle(Form("TH2GMTrackPurityEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
     hPurity->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
     hPurity->SetOption("COLZ");
