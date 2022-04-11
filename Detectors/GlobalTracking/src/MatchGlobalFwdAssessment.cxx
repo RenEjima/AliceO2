@@ -698,6 +698,28 @@ void GloFwdAssessment::finalizePurityAndEff()
     hTruePairingEffOuter->SetMinimum(0.0);
     hTruePairingEffOuter->SetMaximum(1.2);
 
+    // Not devide pseudorapidity region
+
+    auto& hPurity->Add(hPurityOuter,hPurityInner);
+    auto& RecoPtProj->Add(RecoPtProjOuter,RecoPtProjInner);
+    hPurity->Divide(RecoPtProj); // Global Pairing Purity = N_true / N_reco
+    hPurity->SetNameTitle(Form("TH2GMTrackPurityEtaCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hPurity->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
+    hPurity->SetOption("COLZ");
+    hPurity->SetMarkerStyle(kFullTriangleUp);
+    hPurity->SetMinimum(0.0);
+    hPurity->SetMaximum(1.2);
+
+    auto& hTruePairingEff->Add(hTruePairingEffOuter,hTruePairingEffInner);
+    auto& PairablePtProj->Add(PairablePtProjOuter,PairablePtProjInner);
+    hTruePairingEff->Divide(PairablePtProj);
+    hTruePairingEff->SetNameTitle(Form("GMTrackTruePairingEffPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hTruePairingEff->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
+    hTruePairingEff->SetOption("COLZ");
+    hTruePairingEff->SetMarkerStyle(kFullCircle);
+    hTruePairingEff->SetMinimum(0.0);
+    hTruePairingEff->SetMaximum(1.2);
+
     mPairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(RecoEtaPt->Clone()));
     mPairingEtaPtVec.back()->Divide(PairableEtaPt); // Pairing Efficiency = N_reco / N_Pairable
     mPairingEtaPtVec.back()->SetNameTitle(Form("GMTrackPairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
@@ -719,22 +741,28 @@ void GloFwdAssessment::finalizePurityAndEff()
 
   std::vector<float> verylowPtOuterPurity;
   std::vector<float> verylowPtInnerPurity;
+  std::vector<float> verylowPtPurity;
   std::vector<float> verylowPtOuterEff;
   std::vector<float> verylowPtInnerEff;
   std::vector<float> veryLowPtOuterTrueEff;
   std::vector<float> veryLowPtInnerTrueEff;
+  std::vector<float> verylowPtTrueEff;
   std::vector<float> lowPtOuterPurity;
   std::vector<float> lowPtInnerPurity;
+  std::vector<float> lowPtPurty;
   std::vector<float> lowPtOuterEff;
   std::vector<float> lowPtInnerEff;
   std::vector<float> lowPtOuterTrueEff;
   std::vector<float> lowPtInnerTrueEff;
+  std::vector<float> lowPtTrueEff;
   std::vector<float> highPtOuterPurity;
   std::vector<float> highPtInnerPurity;
+  std::vector<float> highPtPurity;
   std::vector<float> highPtOuterEff;
   std::vector<float> highPtInnerEff;
   std::vector<float> highPtOuterTrueEff;
   std::vector<float> highPtInnerTrueEff;
+  std::vector<flaot> highPtTrueEff;
 
   auto veryLowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.25);
   auto lowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.75);
@@ -799,6 +827,37 @@ void GloFwdAssessment::finalizePurityAndEff()
   mAssessmentCanvas[nCanvas]->UseCurrentStyle();
   mAssessmentCanvas[nCanvas]->cd();
   first = true;
+
+  for (auto& th2 : mPurityPtVecTH2) {
+    if (first) {
+      option = "hist P PMC";
+    } else {
+      option = "hist SAME P PMC";
+    }
+    first = false;
+    th2->Draw(option.c_str());
+
+    verylowPtPurity.push_back(th2->GetBinContent(veryLowptBin));
+    lowPtPurity.push_back(th2->GetBinContent(lowptBin));
+    highPtPurity.push_back(th2->GetBinContent(highptBin));
+  }
+  t = new TPaveText(0.2223748, 0.9069355, 0.7776252, 0.965, "brNDC");
+  t->SetBorderSize(0);
+  t->SetFillColor(gStyle->GetTitleFillColor());
+  t->AddText("Global Muon Track Purity");
+  t->Draw();
+
+  mAssessmentCanvas[nCanvas]->BuildLegend(.8, .15, .96, .87);
+  mAssessmentCanvas[nCanvas]->SetTicky();
+  mAssessmentCanvas[nCanvas]->SetGridy();
+
+  nCanvas = kPairingEffPtOuter;
+  canvasName = GMAssesmentNames[nCanvas];
+  mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
+  mAssessmentCanvas[nCanvas]->UseCurrentStyle();
+  mAssessmentCanvas[nCanvas]->cd();
+  first = true;
+
 
   for (auto& th2 : mPairingPtOuterVecTH1) {
     if (first) {
@@ -903,6 +962,35 @@ void GloFwdAssessment::finalizePurityAndEff()
   t->SetBorderSize(0);
   t->SetFillColor(gStyle->GetTitleFillColor());
   t->AddText("Global Muon Track True Pairing Efficiency (3.0 < #eta < 3.6 )");
+  t->Draw();
+
+  mAssessmentCanvas[nCanvas]->BuildLegend(.8, .15, .96, .87);
+  mAssessmentCanvas[nCanvas]->SetTicky();
+  mAssessmentCanvas[nCanvas]->SetGridy();
+
+  nCanvas = kTruePairingEffPt;
+  canvasName = GMAssesmentNames[nCanvas];
+  mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
+  mAssessmentCanvas[nCanvas]->UseCurrentStyle();
+  mAssessmentCanvas[nCanvas]->cd();
+  first = true;
+
+  for (auto& th2 : mTruePairingPtVecTH1) {
+    if (first) {
+      option = "hist P PMC";
+    } else {
+      option = "hist SAME P PMC";
+    }
+    first = false;
+    veryLowPtTrueEff.push_back(th2->GetBinContent(veryLowptBin));
+    lowPtTrueEff.push_back(th2->GetBinContent(lowptBin));
+    highPtTrueEff.push_back(th2->GetBinContent(highptBin));
+    th2->Draw(option.c_str());
+  }
+  t = new TPaveText(0.2223748, 0.9069355, 0.7776252, 0.965, "brNDC");
+  t->SetBorderSize(0);
+  t->SetFillColor(gStyle->GetTitleFillColor());
+  t->AddText("Global Muon Track True Pairing Efficiency");
   t->Draw();
 
   mAssessmentCanvas[nCanvas]->BuildLegend(.8, .15, .96, .87);
