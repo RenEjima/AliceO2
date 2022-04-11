@@ -142,10 +142,12 @@ class GloFwdAssessment
 
   std::vector<std::unique_ptr<TH2D>> mPurityPtInnerVecTH2;
   std::vector<std::unique_ptr<TH2D>> mPurityPtOuterVecTH2;
+  std::vector<std::unique_ptr<TH2D>> mPurityPtVecTH2;
   std::vector<std::unique_ptr<TH1D>> mPairingPtInnerVecTH1;
   std::vector<std::unique_ptr<TH1D>> mPairingPtOuterVecTH1;
   std::vector<std::unique_ptr<TH1D>> mTruePairingPtInnerVecTH1;
   std::vector<std::unique_ptr<TH1D>> mTruePairingPtOuterVecTH1;
+  std::vector<std::unique_ptr<TH1D>> mTruePairingPtVecTH1;
   std::vector<std::unique_ptr<TH2D>> mPairingEtaPtVec;
   std::vector<std::unique_ptr<TH2D>> mTruePairingEtaPtVec;
 
@@ -376,11 +378,13 @@ class GloFwdAssessment
   enum GMAssesmentCanvases {
     kPurityPtOuter,
     kPurityPtInner,
+    kPurityPt,
     kPairingEffPtOuter,
     kPairingEffPtInner,
     kPurityVsEfficiency,
     kTruePairingEffPtOuter,
     kTruePairingEffPtInner,
+    kTruePairingEffPt,
     kPurityVsTrueEfficiency,
     kNGMAssesmentCanvases
   };
@@ -388,10 +392,12 @@ class GloFwdAssessment
   std::map<int, const char*> GMAssesmentNames{
     {kPurityPtOuter, "PurityPtOuter"},
     {kPurityPtInner, "PurityPtInner"},
+    {kPurityPt, "PurityPt"},
     {kPairingEffPtOuter, "PairingEffPtOuter"},
     {kPairingEffPtInner, "PairingEffPtInner"},
     {kTruePairingEffPtOuter, "TruePairingEffPtOuter"},
     {kTruePairingEffPtInner, "TruePairingEffPtInner"},
+    {kTruePairingEffPt, "TruePairingEffPt"},
     {kPurityVsEfficiency, "PurityVsEfficiency"},
     {kPurityVsTrueEfficiency, "PurityVsTrueEfficiency"}};
 
@@ -402,9 +408,9 @@ class GloFwdAssessment
   float mBz = 0;
   bool mMIDFilterEnabled = true;
   bool mFinalizeAnalysis = false;
-  float mFinalizeMinCut = 0.f;
+  float mFinalizeMinCut = -5.f;
   float mFinalizeMaxCut = 15.f;
-  int mNFinalizeSteps = 15;
+  int mNFinalizeSteps = 20;
 
   ClassDefNV(GloFwdAssessment, 1);
 };
