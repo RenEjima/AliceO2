@@ -435,7 +435,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           const auto& mcTracks = mcReader.getTracks(SourceID_MFT,EventID_MFT);
           for(const auto& mcParticle : mcTracks){
             if (mcParticle.getTrackID() == TrackID_MFT){
-              isPrimary_MFT = mcParticle.isPrimary()
+              isPrimary_MFT = mcParticle.isPrimary();
               mcReader.releaseTracksForSourceAndEvent(src, event);
               break;
               }
