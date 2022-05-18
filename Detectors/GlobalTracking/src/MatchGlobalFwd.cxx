@@ -428,11 +428,23 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
         }
 
         if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
+          Int_t isPrimary_MFT = 0;
+          EventID_MFT = thisMFTTrack.getEventID();
+          TrackID_MFT = thisMFTTrack.getTrackID();
+          SourceID_MFT = thisMFTTrack.getSourceID();
+          const auto& mcTracks = mcReader.getTracks(SourceID_MFT,EventID_MFT);
+          for(const auto& mcParticle : mcTracks){
+            if (mcParticle.getTrackID() == TrackID_MFT){
+              isPrimary_MFT = mcParticle.isPrimary()
+              mcReader.releaseTracksForSourceAndEvent(src, event);
+              }
+            }
+          }
           thisMCHTrack.setMFTTrackID(MFTId);
           thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchingInfo.emplace_back(thisMCHTrack);
           mMCHMatchPlaneParams.emplace_back(thisMCHTrack);
-          mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack));
+          mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack),isPrimary_MFT);
 
           if (mMCTruthON) {
             mMatchLabels.push_back(matchLabel);
