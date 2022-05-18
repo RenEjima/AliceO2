@@ -437,6 +437,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
             if (mcParticle.getTrackID() == TrackID_MFT){
               isPrimary_MFT = mcParticle.isPrimary()
               mcReader.releaseTracksForSourceAndEvent(src, event);
+              break;
               }
             }
           }
