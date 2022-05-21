@@ -428,15 +428,19 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
         }
 
         if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
+          LOG(info) << "Initializing MC Reader";
+          if (!mcReader.initFromDigitContext("collisioncontext.root")) {
+            throw std::invalid_argument("initialization of MCKinematicsReader failed");
+          }
           Int_t isPrimary_MFT = 0;
-          EventID_MFT = thisMFTTrack.getEventID();
-          TrackID_MFT = thisMFTTrack.getTrackID();
-          SourceID_MFT = thisMFTTrack.getSourceID();
+          Int_t EventID_MFT = thisMFTTrack.getEventID();
+          Int_t TrackID_MFT = thisMFTTrack.getTrackID();
+          Int_t SourceID_MFT = thisMFTTrack.getSourceID();
           const auto& mcTracks = mcReader.getTracks(SourceID_MFT,EventID_MFT);
           for(const auto& mcParticle : mcTracks){
             if (mcParticle.getTrackID() == TrackID_MFT){
               isPrimary_MFT = mcParticle.isPrimary();
-              mcReader.releaseTracksForSourceAndEvent(src, event);
+              mcReader.releaseTracksForSourceAndEvent(SourceID_MFT, EventID_MFT);
               break;
               }
             }
