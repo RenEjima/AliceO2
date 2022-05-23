@@ -428,23 +428,19 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
         }
 
         if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
-          LOG(info) << "Initializing MC Reader";
-          if (!mcReader.initFromDigitContext("collisioncontext.root")) {
-            throw std::invalid_argument("initialization of MCKinematicsReader failed");
-          }
+          std::unique_ptr<TFile> o2sim_KineFileIn(new TFile(bkg_Kine.root);
+          std::unique_ptr<TTree> o2SimKineTree((TTree*)o2sim_KineFileIn->Get("o2sim"));
+          vector<o2::MCTrackT<float>>* mcTr = nullptr;
+          o2SimKineTree->SetBranchAddress("MCTrack", &mcTr);
+          o2::MCTrackT<float>* thisTrack;
+          Int_t evtID = matchLabel.getEventID();
+          Int_t trkID = matchLabel.getTrackID();
+          o2SimKineTree->GetEntry(evtID);
+          thisTrack = &(mcTr->at(trkID));
+
           Int_t isPrimary_MFT = 0;
-          Int_t EventID_MFT = thisMFTTrack.getEventID();
-          Int_t TrackID_MFT = thisMFTTrack.getTrackID();
-          Int_t SourceID_MFT = thisMFTTrack.getSourceID();
-          const auto& mcTracks = mcReader.getTracks(SourceID_MFT,EventID_MFT);
-          for(const auto& mcParticle : mcTracks){
-            if (mcParticle.getTrackID() == TrackID_MFT){
-              isPrimary_MFT = mcParticle.isPrimary();
-              mcReader.releaseTracksForSourceAndEvent(SourceID_MFT, EventID_MFT);
-              break;
-              }
-            }
-          }
+          isPrimary_MFT = thisTrack.isPrimary();
+
           thisMCHTrack.setMFTTrackID(MFTId);
           thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchingInfo.emplace_back(thisMCHTrack);
