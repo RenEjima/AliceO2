@@ -430,7 +430,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
         if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
           std::unique_ptr<TFile> o2sim_KineFileIn(new TFile("bkg_Kine.root"));
           std::unique_ptr<TTree> o2SimKineTree((TTree*)o2sim_KineFileIn->Get("o2sim"));
-          vector<o2::MCTrackT<float>>* mcTr = nullptr;
+          std::vector<o2::MCTrackT<float>>* mcTr = nullptr;
           o2SimKineTree->SetBranchAddress("MCTrack", &mcTr);
           o2::MCTrackT<float>* thisTrack;
           Int_t evtID = matchLabel.getEventID();
