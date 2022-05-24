@@ -437,7 +437,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           Int_t trkID = matchLabel.getTrackID();
           o2SimKineTree->GetEntry(evtID);
           thisTrack = &(mcTr->at(trkID));
-          Int_t isPrimary_MFT = thisTrack.isPrimary();
+          Int_t isPrimary_MFT = thisTrack->isPrimary();
           thisMCHTrack.setMFTTrackID(MFTId);
           thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchingInfo.emplace_back(thisMCHTrack);
