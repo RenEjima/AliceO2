@@ -44,6 +44,7 @@
 #include "GlobalTracking/MatchGlobalFwdParam.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TGeoManager.h"
+#include <MCTrack.h>
 
 namespace o2
 {
@@ -59,6 +60,8 @@ class TrackMCH;
 }
 
 namespace globaltracking
+
+namespace MCTrackT
 {
 
 ///< MFT track outward parameters propagated to reference Z,
@@ -118,7 +121,6 @@ class MatchGlobalFwd
   void init();
   void finalize();
   void clear();
-  void setBz(float bz) { mBz = bz; }
 
   void setMFTDictionary(const o2::itsmft::TopologyDictionary* d) { mMFTDict = d; }
   void setMatchingPlaneZ(float z) { mMatchingPlaneZ = z; };
