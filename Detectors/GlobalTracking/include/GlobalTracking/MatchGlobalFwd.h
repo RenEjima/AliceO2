@@ -44,7 +44,7 @@
 #include "GlobalTracking/MatchGlobalFwdParam.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TGeoManager.h"
-#include <MCTrack.h>
+//#include <MCTrack.h>
 
 namespace o2
 {
@@ -61,7 +61,7 @@ class TrackMCH;
 
 namespace globaltracking
 
-namespace MCTrackT
+//namespace MCTrackT
 {
 
 ///< MFT track outward parameters propagated to reference Z,
