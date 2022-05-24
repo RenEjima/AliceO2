@@ -442,7 +442,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchingInfo.emplace_back(thisMCHTrack);
           mMCHMatchPlaneParams.emplace_back(thisMCHTrack);
-          mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack),isPrimary_MFT);
+          mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack));
 
           if (mMCTruthON) {
             mMatchLabels.push_back(matchLabel);
