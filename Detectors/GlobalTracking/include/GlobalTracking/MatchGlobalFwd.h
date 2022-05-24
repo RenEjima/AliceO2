@@ -16,6 +16,8 @@
 #ifndef ALICEO2_GLOBTRACKING_MATCHGLOBALFWD_
 #define ALICEO2_GLOBTRACKING_MATCHGLOBALFWD_
 
+#include "TFile.h"
+#include "TTree.h"
 #include <Rtypes.h>
 #include <array>
 #include <vector>
