@@ -437,12 +437,13 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           Int_t trkID = matchLabel.getTrackID();
           o2SimKineTree->GetEntry(evtID);
           thisTrack = &(mcTr->at(trkID));
-          Int_t isPrimary_MFT = thisTrack->isPrimary();
+          Int_t isPrimary_MCH = thisTrack->isPrimary();
           thisMCHTrack.setMFTTrackID(MFTId);
           thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchingInfo.emplace_back(thisMCHTrack);
           mMCHMatchPlaneParams.emplace_back(thisMCHTrack);
           mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack));
+          mIsPrimaryInfo.emplace_back(isPrimary_MCH);
 
           if (mMCTruthON) {
             mMatchLabels.push_back(matchLabel);
