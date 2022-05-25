@@ -17,7 +17,6 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/CCDBParamSpec.h"
 #include "CommonUtils/StringUtils.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
@@ -32,9 +31,6 @@
 #include "GlobalTracking/MatchGlobalFwd.h"
 #include "GlobalTrackingWorkflow/GlobalFwdMatchingSpec.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
-#include "DetectorsBase/Propagator.h"
-#include "TGeoGlobalMagField.h"
-#include "Field/MagneticField.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -57,10 +53,9 @@ class GlobalFwdMatchingDPL : public Task
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
-  void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   bool mMatchRootOutput = false;
-  o2::globaltracking::MatchGlobalFwd mMatching;             // Forward matching engine
+  o2::globaltracking::MatchGlobalFwd mMatching; // Forward matching engine
   const o2::itsmft::TopologyDictionary* mMFTDict = nullptr; // cluster patterns dictionary
 
   bool mUseMC = true;
@@ -71,16 +66,14 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  const auto grp = o2::parameters::GRPObject::loadFrom();
-  o2::base::Propagator::initFieldFromGRP(grp);
-  auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
-  auto Bz = field->getBz(centerMFT);
-  LOG(info) << "Setting Global forward matching Bz = " << Bz;
-  mMatching.setBz(Bz);
-
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
   mMatching.setMFTTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::MFT));
-
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+  if (mMatching.isMFTTriggered()) {
+    mMatching.setMFTROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // MFT ROFrame duration in \mus
+  } else {
+    mMatching.setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
+  }
   mMatching.setMCTruthOn(mUseMC);
 
   // set bunch filling. Eventually, this should come from CCDB
@@ -102,9 +95,9 @@ void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   LOG(info) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
+
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
   mMatching.run(recoData);
 
@@ -114,6 +107,7 @@ void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "GLFWDMFT", 0, Lifetime::Timeframe}, mMatching.getMFTMatchingPlaneParams());
     pc.outputs().snapshot(Output{"GLO", "GLFWDMCH", 0, Lifetime::Timeframe}, mMatching.getMCHMatchingPlaneParams());
     pc.outputs().snapshot(Output{"GLO", "GLFWDINF", 0, Lifetime::Timeframe}, mMatching.getMFTMCHMatchInfo());
+    pc.outputs().snapshot(Output{"GLO", "GLFWDINF", 0, Lifetime::Timeframe}, mMatching.getIsPrimary());
   } else {
     pc.outputs().snapshot(Output{"GLO", "GLFWD", 0, Lifetime::Timeframe}, mMatching.getMatchedFwdTracks());
   }
@@ -138,29 +132,7 @@ void GlobalFwdMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMatching.setMFTDictionary((const o2::itsmft::TopologyDictionary*)obj);
-    return;
   }
-  if (matcher == ConcreteDataMatcher("MFT", "ALPIDEPARAM", 0)) {
-    LOG(info) << "MFT Alpide param updated";
-    return;
-  }
-}
-
-void GlobalFwdMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
-{
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
-
-    // apply needed settings
-    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-    if (mMatching.isMFTTriggered()) {
-      mMatching.setMFTROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // MFT ROFrame duration in \mus
-    } else {
-      mMatching.setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
-    }
-  }
-  // we may have other params which need to be queried regularly
 }
 
 DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
