@@ -144,6 +144,7 @@ class MatchGlobalFwd
   const std::vector<o2::track::TrackParCovFwd>& getMCHMatchingPlaneParams() const { return mMCHMatchPlaneParams; }
   const std::vector<o2::dataformats::MatchInfoFwd>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
   const std::vector<o2::MCCompLabel>& getMatchLabels() const { return mMatchLabels; }
+  const std::vector& getIsPrimary() const { return mIsPrimaryInfo; }
 
  private:
   void updateTimeDependentParams();
@@ -324,6 +325,7 @@ class MatchGlobalFwd
   std::vector<o2::dataformats::MatchInfoFwd> mMatchingInfo;    ///< Forward tracks mathing information
   std::vector<o2::mft::TrackMFT> mMFTMatchPlaneParams;         ///< MFT track parameters at matching plane
   std::vector<o2::track::TrackParCovFwd> mMCHMatchPlaneParams; ///< MCH track parameters at matching plane
+  std::vector mIsPrimaryInfo;                                  ///< MCTrack is primary particle or not
 
   const o2::itsmft::TopologyDictionary* mMFTDict{nullptr}; // cluster patterns dictionary
   o2::itsmft::ChipMappingMFT mMFTMapping;
