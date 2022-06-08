@@ -9,13 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_WORKFLOW_CLUSTER_TRANSFORMER_SPEC_H
-#define O2_MCH_WORKFLOW_CLUSTER_TRANSFORMER_SPEC_H
-#include "Framework/DataProcessorSpec.h"
+#ifdef __CLING__
 
-namespace o2::mch
-{
-o2::framework::DataProcessorSpec getClusterTransformerSpec(const char* specName = "mch-cluster-transformer");
-};
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
+
+#pragma link C++ class o2::fct::FCTLayer + ;
+#pragma link C++ class o2::fct::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::fct::Detector> + ;
 
 #endif
